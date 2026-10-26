@@ -1,0 +1,45 @@
+flowchart LR
+  subgraph Presentation["Presentación: src/presentation y public"]
+    WEB["Aplicación web<br/>public/index.html"]
+    FACADE["AvoChainFacadeController"]
+    PAYCTRL["PaymentsController"]
+  end
+  subgraph Application["Aplicación: src/application"]
+    SERVICE["AvoChainService"]
+    PREMIUM["PremiumService"]
+    PAYMENT["WompiPaymentService"]
+    VALIDATION["ReceptionValidationChain"]
+    DTO["dtos/AvoChainDtos"]
+  end
+  subgraph Domain["Dominio: src/domain"]
+    ENTITIES["entities<br/>Finca, Lote, eventos"]
+    ROLES["roles/Roles<br/>7 roles y descripciones"]
+    STATE["state/LoteState"]
+    QUALITY["quality/QualityStrategy"]
+  end
+  subgraph Infrastructure["Infraestructura: src/infrastructure"]
+    MONGO["database/AvoChainMongoRepository<br/>MongoDB"]
+    ADAPTERS["adapters<br/>BlockchainAdapter, OfflineScanProxy"]
+    STORAGE["factories/StorageFactory<br/>IPFS simulado"]
+    WOMPI["Checkout, API y eventos Wompi"]
+  end
+
+  WEB -->|HTTP JSON| FACADE
+  WEB -->|HTTP JSON| PAYCTRL
+  FACADE --> SERVICE
+  PAYCTRL --> PAYMENT
+  PAYCTRL --> PREMIUM
+  SERVICE --> DTO
+  SERVICE --> ENTITIES
+  SERVICE --> STATE
+  SERVICE --> QUALITY
+  SERVICE --> VALIDATION
+  SERVICE --> MONGO
+  SERVICE --> ADAPTERS
+  SERVICE --> STORAGE
+  PAYMENT --> MONGO
+  PAYMENT <-->|Checkout, transacciones, webhook| WOMPI
+  PAYMENT -->|Pago simulado| MONGO
+  PREMIUM --> MONGO
+  ENTITIES --> ROLES
+  MONGO -. persistencia .-> ENTITIES

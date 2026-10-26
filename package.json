@@ -1,0 +1,30 @@
+{
+  "name": "avo-chain",
+  "version": "1.0.0",
+  "description": "Demo de trazabilidad de aguacate con arquitectura por capas, patrones y flujo blockchain simulado.",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "tsx watch src/app.ts",
+    "start": "node dist/app.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.8",
+    "express": "^5.2.1",
+    "mongodb": "^7.7.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.5.4",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
+  }
+}

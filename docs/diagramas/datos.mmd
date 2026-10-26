@@ -1,0 +1,60 @@
+erDiagram
+  USUARIOS {
+    ObjectId _id PK
+    string walletAddress UK
+    string nombre
+    string rol
+    boolean estadoActivo
+    date fechaRegistro
+  }
+  FINCAS {
+    ObjectId _id PK
+    string codigoInterno UK
+    ObjectId productorId FK
+    string nombreFinca
+    string registroICA UK
+    string ubicacionGPS
+    string certificadoICA_url
+    string estado
+    object datosAplicacion
+  }
+  LOTES {
+    ObjectId _id PK
+    string codigoLote UK
+    ObjectId fincaId FK
+    string estadoActual
+    string hashBlockchain_registro
+    object datosProduccion
+    object inspeccionCalidad
+    object codigoQR
+    object despacho
+    array incidentesRuta
+    object recepcionDestino
+    object ventaFinal
+    array evidencias
+    array eventos
+    object datosAplicacion
+  }
+  PAGOS_WOMPI {
+    ObjectId _id PK
+    string reference UK
+    string email
+    int amountInCents
+    string currency
+    string status
+    string transactionId
+    date createdAt
+    date updatedAt
+  }
+  ACCESOS_PREMIUM {
+    ObjectId _id PK
+    string email UK
+    boolean activo
+    string reference
+    string transactionId
+    date activadoEn
+  }
+
+  USUARIOS ||--o{ FINCAS : productorId
+  FINCAS ||--o{ LOTES : fincaId
+  PAGOS_WOMPI }o--o| ACCESOS_PREMIUM : "email y referencia aprobada"

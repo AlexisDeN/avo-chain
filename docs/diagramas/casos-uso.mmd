@@ -1,0 +1,48 @@
+flowchart LR
+  Productor["Actor: Productor"]
+  Calidad["Actor: Inspector de calidad"]
+  Bodega["Actor: Bodeguero"]
+  Transportador["Actor: Transportador"]
+  Receptor["Actor: Receptor"]
+  Vendedor["Actor: Vendedor"]
+  Cliente["Actor: Consulta pública"]
+  Cuenta["Actor: Cuenta identificada por correo"]
+  Wompi["Sistema externo: Wompi"]
+
+  subgraph AvoChain["AvoChain · aplicación web"]
+    UC1([Registrar finca])
+    UC2([Registrar lote])
+    UC3([Adjuntar evidencias])
+    UC4([Inspeccionar calidad])
+    UC5([Generar QR y despachar lote])
+    UC6([Reportar incidente y ubicación])
+    UC7([Confirmar recepción en destino])
+    UC8([Consultar origen y trazabilidad])
+    UC9([Registrar venta])
+    UC10([Consultar plan por correo])
+    UC11([Pagar Premium con Wompi])
+    UC12([Simular pago Premium])
+    UC13([Ver administración y reporte global])
+    UC14([Exportar historial CSV])
+  end
+
+  Productor --> UC1
+  Productor --> UC2
+  Productor --> UC3
+  Calidad --> UC4
+  Bodega --> UC5
+  Transportador --> UC6
+  Receptor --> UC7
+  Vendedor --> UC8
+  Vendedor --> UC9
+  Cliente --> UC8
+  Cuenta --> UC10
+  Cuenta --> UC11
+  Cuenta --> UC12
+  Wompi --> UC11
+  Cuenta --> UC13
+  Cuenta --> UC14
+  UC13 -. requiere acceso Premium .-> UC11
+  UC13 -. requiere acceso Premium .-> UC12
+  UC14 -. requiere acceso Premium .-> UC11
+  UC14 -. requiere acceso Premium .-> UC12

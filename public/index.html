@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AvoChain - Trazabilidad de Aguacate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
+    body {
+      font-family: "Plus Jakarta Sans", sans-serif;
+      background: #0d0f12;
+      color: #f3f4f6;
+    }
+
+    .panel {
+      background: #1a1f26;
+      border: 1px solid #2a3340;
+      border-radius: 16px;
+    }
+
+    .control {
+      width: 100%;
+      background: #11161c;
+      border: 1px solid #344054;
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .btn {
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #84cc16;
+      color: #0b0f13;
+    }
+
+    .btn-secondary {
+      background: #1b4d2e;
+      color: #bef264;
+      border: 1px solid rgba(132, 204, 22, .5);
+    }
+
+    .btn-danger {
+      background: rgba(225, 29, 72, .16);
+      color: #fda4af;
+      border: 1px solid rgba(244, 63, 94, .55);
+    }
+
+    .role-active {
+      background: #1b4d2e !important;
+      color: #bef264 !important;
+      border-color: #84cc16 !important;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #334155;
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 500px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #334155;
+      padding: 8px;
+      text-align: left;
+      font-size: 11px;
+    }
+
+    th {
+      color: #cbd5e1;
+      background: rgba(15, 23, 42, .65);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center p-3 md:p-8">
+  <main class="w-full max-w-7xl flex flex-col">
+    
+    <!-- HEADER -->
+    <header class="panel w-full mb-4 flex items-center justify-between p-4 md:p-5">
+      <div class="flex items-center gap-2.5">
+        <div class="grid h-9 w-9 place-items-center rounded-lg border border-lime-500/40 bg-green-950 text-lime-300">
+          <i data-lucide="sprout" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold leading-tight">AvoChain</h1>
+          <p class="text-xs text-slate-400">Trazabilidad de aguacate · Aplicación web</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 rounded-full border border-slate-700 bg-black/25 px-2.5 py-1 text-[10px] text-slate-300">
+        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        API local
+      </div>
+    </header>
+
+    <!-- CUENTA Y FUNCIONES PREMIUM -->
+    <section class="panel w-full mb-4 p-4 md:p-5 border-amber-500/30">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-amber-300">Plan AvoChain</p>
+          <h2 class="text-lg font-extrabold">Beta gratuita y funciones Premium</h2>
+          <p id="premiumAccessInfo" class="mt-1 text-xs text-slate-400">Escribe tu correo para consultar el acceso.</p>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span id="planBadge" class="badge bg-slate-800 text-slate-300">Sin consultar</span>
+            <p id="planActionInfo" class="text-[11px] text-slate-400">Consulta tu plan para ver las opciones disponibles.</p>
+          </div>
+        </div>
+        <div class="flex w-full flex-col gap-2 sm:flex-row lg:max-w-2xl">
+          <input id="premiumEmail" type="email" class="control min-w-0 flex-1" autocomplete="email" placeholder="tu-correo@ejemplo.com" aria-label="Correo de la cuenta" />
+          <button id="consultarPlan" class="btn btn-secondary">Consultar plan</button>
+          <button id="pagarPremium" class="btn btn-primary" disabled>Pagar con Wompi</button>
+          <button id="pagarPremiumDemo" class="btn btn-secondary border-amber-400/40 text-amber-200">Demostración de pago</button>
+        </div>
+      </div>
+      <div class="mt-4 grid gap-3 lg:grid-cols-2">
+        <article class="rounded-xl border border-slate-700 bg-black/20 p-3">
+          <h3 class="text-sm font-bold">Reporte avanzado</h3>
+          <p class="my-1 text-xs text-slate-400">Resumen de kilos, lotes e incidentes por finca y estado.</p>
+          <button id="generarReportePremium" class="btn btn-secondary mt-2">Ver reporte</button>
+          <div id="reportePremium" class="mt-3 space-y-2 text-xs"></div>
+        </article>
+        <article class="rounded-xl border border-slate-700 bg-black/20 p-3">
+          <h3 class="text-sm font-bold">Exportar historial de trazabilidad</h3>
+          <p class="my-1 text-xs text-slate-400">Descarga los eventos y hashes de un lote en CSV.</p>
+          <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+            <select id="loteHistorialPremium" class="control min-w-0 flex-1" aria-label="Selecciona el lote para exportar"></select>
+            <button id="exportarHistorialPremium" class="btn btn-secondary">Descargar CSV</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <dialog id="pagoDemoModal" class="w-[min(94vw,28rem)] rounded-2xl border border-amber-400/40 bg-slate-950 p-0 text-slate-100 shadow-2xl backdrop:bg-black/75">
+      <div class="border-b border-slate-800 bg-gradient-to-r from-amber-950/70 to-slate-900 p-5">
+        <p class="text-[10px] font-bold uppercase tracking-[.2em] text-amber-300">AvoChain · entorno de demostración</p>
+        <h2 class="mt-2 text-xl font-extrabold">Confirmar pago Premium</h2>
+        <p class="mt-1 text-sm text-slate-300">Esta pantalla simula una pasarela. No solicita datos bancarios y no realiza cobros.</p>
+      </div>
+      <div class="space-y-3 p-5">
+        <div class="rounded-xl border border-slate-800 bg-black/30 p-3 text-sm">
+          <div class="flex justify-between gap-3"><span class="text-slate-400">Cuenta</span><strong id="pagoDemoCorreo" class="break-all text-right"></strong></div>
+          <div class="mt-2 flex justify-between gap-3"><span class="text-slate-400">Plan</span><strong>Premium</strong></div>
+          <div class="mt-2 flex justify-between gap-3"><span class="text-slate-400">Valor demostrativo</span><strong id="pagoDemoValor" class="text-amber-200"></strong></div>
+        </div>
+        <p class="text-xs text-slate-400">Al confirmar, el sistema guardará una transacción marcada como simulada y activará las funciones Premium para este correo.</p>
+        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button id="cancelarPagoDemo" class="btn btn-secondary">Cancelar</button>
+          <button id="confirmarPagoDemo" class="btn btn-primary">Simular pago aprobado</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- ROLES NAVIGATION -->
+    <section class="panel w-full mb-4 p-1.5 flex gap-1 overflow-x-auto">
+      <button class="btn role-active flex-1 py-1.5 px-2 text-[11px] whitespace-nowrap" data-role="productor"><i data-lucide="tractor" class="w-3.5 h-3.5"></i>Productor</button>
+      <button class="btn flex-1 py-1.5 px-2 text-[11px] whitespace-nowrap text-slate-400" data-role="calidad"><i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i>Calidad</button>
+      <button class="btn flex-1 py-1.5 px-2 text-[11px] whitespace-nowrap text-slate-400" data-role="bodega"><i data-lucide="package" class="w-3.5 h-3.5"></i>Bodega</button>
+      <button class="btn flex-1 py-1.5 px-2 text-[11px] whitespace-nowrap text-slate-400" data-role="conductor"><i data-lucide="truck" class="w-3.5 h-3.5"></i>Conductor</button>
+      <button class="btn flex-1 py-1.5 px-2 text-[11px] whitespace-nowrap text-slate-400" data-role="tienda"><i data-lucide="store" class="w-3.5 h-3.5"></i>Tienda</button>
+      <button class="btn flex-1 py-1.5 px-2 text-[11px] whitespace-nowrap text-slate-400 opacity-60" data-role="admin" title="Premium"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i>Admin · Premium</button>
+    </section>
+
+    <!-- ÁREA DE TRABAJO WEB -->
+    <div class="panel w-full p-4 md:p-6 shadow-2xl shadow-lime-950/20">
+      <div class="w-full space-y-4">
+        
+        <!-- PRODUCTOR -->
+        <div data-view="productor" class="role-view space-y-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-lime-300">HU-01, HU-02, HU-06</p>
+            <h2 class="text-lg font-extrabold">Finca, Lote y Evidencias</h2>
+          </div>
+          <div class="space-y-2">
+            <div>
+              <label for="fincaNombre" class="text-[11px] text-slate-300">Nombre finca</label>
+              <input id="fincaNombre" class="control mt-0.5" value="Finca El Paraiso" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label for="fincaIca" class="text-[11px] text-slate-300">Registro ICA</label>
+                <input id="fincaIca" class="control mt-0.5" value="ICA-67890" />
+              </div>
+              <div>
+                <label for="fincaGps" class="text-[11px] text-slate-300">GPS</label>
+                <input id="fincaGps" class="control mt-0.5" value="4.7110,-74.0721" />
+              </div>
+            </div>
+            <button class="btn btn-secondary w-full" id="crearFinca"><i data-lucide="map-pin-plus" class="w-3.5 h-3.5"></i>Registrar finca</button>
+          </div>
+          <hr class="border-slate-800" />
+          <div class="space-y-2">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label for="loteFincaId" class="text-[11px] text-slate-300">Finca ID</label>
+                <select id="loteFincaId" class="control mt-0.5" aria-label="Selecciona la finca de origen del lote"></select>
+              </div>
+              <div>
+                <label for="lotePeso" class="text-[11px] text-slate-300">Peso kg</label>
+                <input id="lotePeso" type="number" class="control mt-0.5" value="250" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label for="loteVariedad" class="text-[11px] text-slate-300">Variedad</label>
+                <input id="loteVariedad" class="control mt-0.5" value="Hass" />
+              </div>
+              <div>
+                <label for="loteFecha" class="text-[11px] text-slate-300">Fecha cosecha</label>
+                <input id="loteFecha" type="date" class="control mt-0.5" value="2026-09-13" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-2 pt-1">
+              <button class="btn btn-primary w-full" id="crearLote"><i data-lucide="check-circle" class="w-4 h-4"></i>Registrar lote blockchain</button>
+              <button class="btn btn-secondary w-full" id="subirFotos"><i data-lucide="camera" class="w-3.5 h-3.5"></i>Guardar fotos IPFS</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- INSPECCIÓN DE CALIDAD -->
+        <div data-view="calidad" class="role-view hidden space-y-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-cyan-300">HU-11</p>
+            <h2 class="text-lg font-extrabold">Aprobar calidad del producto</h2>
+            <p class="text-[11px] text-slate-400">La aprobación habilita el QR y el despacho.</p>
+          </div>
+          <div>
+            <label for="calidadLote" class="text-[11px] text-slate-300">Lote pendiente de inspección</label>
+            <select id="calidadLote" class="control mt-0.5" aria-label="Selecciona lote para inspección de calidad"></select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label for="calidadDestino" class="text-[11px] text-slate-300">Destino</label><select id="calidadDestino" class="control mt-0.5"><option value="Exportacion">Exportación</option><option value="Nacional">Nacional</option></select></div>
+            <div><label for="calidadFitosanitaria" class="text-[11px] text-slate-300">Evaluación fitosanitaria</label><select id="calidadFitosanitaria" class="control mt-0.5"><option value="Aprobada">Aprobada</option><option value="Rechazada">Rechazada</option></select></div>
+            <div><label for="calidadHumedad" class="text-[11px] text-slate-300">Humedad (%)</label><input id="calidadHumedad" type="number" min="0" max="100" step="0.1" class="control mt-0.5" value="65" /></div>
+            <div><label for="calidadTemperatura" class="text-[11px] text-slate-300">Temperatura (°C)</label><input id="calidadTemperatura" type="number" step="0.1" class="control mt-0.5" value="6" /></div>
+          </div>
+          <div id="calidadAlerta" class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-2 text-[11px] text-emerald-200" role="status">Parámetros dentro del rango de exportación.</div>
+          <div><label for="calidadInformeUrl" class="text-[11px] text-slate-300">URL del informe PDF (S3)</label><input id="calidadInformeUrl" type="url" class="control mt-0.5" placeholder="https://.../informe-calidad.pdf" /></div>
+          <div><label for="calidadInformeMb" class="text-[11px] text-slate-300">Peso del PDF (MB, máximo 2)</label><input id="calidadInformeMb" type="number" min="0.01" max="2" step="0.01" class="control mt-0.5" value="0.5" /></div>
+          <button class="btn btn-primary w-full" id="aprobarCalidad"><i data-lucide="shield-check" class="w-4 h-4"></i>Registrar inspección</button>
+        </div>
+
+        <!-- BODEGA -->
+        <div data-view="bodega" class="role-view hidden space-y-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-sky-300">HU-07, HU-08</p>
+            <h2 class="text-lg font-extrabold">QR y Despacho</h2>
+          </div>
+          <div>
+            <label for="bodegaLote" class="text-[11px] text-slate-300">Lote</label>
+            <select id="bodegaLote" class="control mt-0.5" aria-label="Selecciona el lote a despachar"></select>
+          </div>
+          <div id="qrBox" class="grid min-h-[180px] place-items-center rounded-xl border border-dashed border-slate-700 bg-black/40 p-3 text-center text-xs text-slate-400">
+            Genera el QR para ver la imagen descargable.
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button class="btn btn-primary" id="generarQr"><i data-lucide="qr-code" class="w-3.5 h-3.5"></i>Generar QR</button>
+            <button class="btn btn-secondary" id="despachar"><i data-lucide="send" class="w-3.5 h-3.5"></i>Asignar conductor</button>
+          </div>
+        </div>
+
+        <!-- CONDUCTOR -->
+        <div data-view="conductor" class="role-view hidden space-y-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-amber-300">HU-03, HU-09</p>
+            <h2 class="text-lg font-extrabold">Escaneo y Novedades</h2>
+          </div>
+          <div>
+            <label for="conductorLote" class="text-[11px] text-slate-300">Lote</label>
+            <select id="conductorLote" class="control mt-0.5" aria-label="Selecciona el lote en ruta"></select>
+          </div>
+          <div class="overflow-hidden rounded-xl border border-dashed border-amber-500/40 bg-black/30 p-2">
+            <video id="qrVideo" class="hidden max-h-48 w-full rounded-lg object-cover" playsinline muted></video>
+            <div id="qrScanHint" class="grid min-h-[100px] place-items-center text-center p-2">
+              <div><i data-lucide="scan-qr-code" class="mx-auto h-10 w-10 text-amber-300"></i><p class="mt-1 text-xs text-slate-300">Escanea el código QR del lote con la cámara.</p></div>
+            </div>
+            <p id="qrScanStatus" class="mt-1 text-center text-[10px] text-slate-400">También puedes seleccionar el lote manualmente.</p>
+          </div>
+          <button class="btn btn-secondary w-full" id="iniciarEscaner"><i data-lucide="camera" class="w-3.5 h-3.5"></i>Activar cámara y escanear QR</button>
+          <div class="space-y-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+            <h3 class="text-xs font-bold text-emerald-200">Confirmar recepción en destino</h3>
+            <div class="grid grid-cols-2 gap-2">
+              <div><label for="temperaturaLlegada" class="text-[11px] text-slate-300">Temperatura llegada (4–10°C)</label><input id="temperaturaLlegada" type="number" min="4" max="10" step="0.1" class="control mt-0.5" value="6" /></div>
+              <div><label for="cajasDanadas" class="text-[11px] text-slate-300">Cajas dañadas</label><input id="cajasDanadas" type="number" min="0" step="1" class="control mt-0.5" value="0" /></div>
+            </div>
+            <div><label for="temperaturaMaximaRuta" class="text-[11px] text-slate-300">Temperatura máxima en ruta (opcional)</label><input id="temperaturaMaximaRuta" type="number" step="0.1" class="control mt-0.5" placeholder="Alerta si supera 12°C" /></div>
+            <button class="btn btn-secondary w-full" id="recibirTienda"><i data-lucide="scan-line" class="w-3.5 h-3.5"></i>Escanear QR y confirmar recepción</button>
+          </div>
+          <div class="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+            <h3 class="text-xs font-bold text-amber-200">Registrar suceso en ruta</h3>
+            <div><label for="tipoIncidente" class="text-[11px] text-slate-300">Suceso</label>
+              <select id="tipoIncidente" class="control mt-0.5">
+                <option value="Camion varado">Camión varado</option>
+                <option value="Choque">Choque / accidente</option>
+                <option value="Trancon por vias cerradas">Trancón por vías cerradas</option>
+                <option value="Via cerrada">Vía cerrada</option>
+                <option value="Derrumbe">Derrumbe</option>
+                <option value="Falla mecanica">Falla mecánica</option>
+                <option value="Clima adverso">Clima adverso</option>
+                <option value="Otro">Otro suceso</option>
+              </select>
+            </div>
+            <div><label for="detalleIncidente" class="text-[11px] text-slate-300">Descripción (máximo 180 caracteres)</label>
+              <textarea id="detalleIncidente" class="control mt-0.5 min-h-16" maxlength="180" placeholder="Describe el lugar y lo ocurrido"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div><label for="incidenteLatitud" class="text-[11px] text-slate-300">Latitud</label><input id="incidenteLatitud" type="number" step="any" class="control mt-0.5" placeholder="4.7110" /></div>
+              <div><label for="incidenteLongitud" class="text-[11px] text-slate-300">Longitud</label><input id="incidenteLongitud" type="number" step="any" class="control mt-0.5" placeholder="-74.0721" /></div>
+            </div>
+            <div><label for="incidenteReferencia" class="text-[11px] text-slate-300">Referencia del lugar (opcional)</label><input id="incidenteReferencia" class="control mt-0.5" maxlength="120" placeholder="Carretera, kilómetro, municipio…" /></div>
+            <button class="btn btn-secondary w-full" id="capturarUbicacion"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>Usar mi ubicación GPS</button>
+            <button class="btn btn-danger w-full" id="reportarIncidente"><i data-lucide="triangle-alert" class="w-3.5 h-3.5"></i>Guardar suceso</button>
+          </div>
+        </div>
+
+        <!-- TIENDA -->
+        <div data-view="tienda" class="role-view hidden space-y-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-300">HU-04, HU-05</p>
+            <h2 class="text-lg font-extrabold">Consulta y Venta</h2>
+          </div>
+          <div>
+            <label for="consultaLote" class="text-[11px] text-slate-300">Codigo de lote</label>
+            <select id="consultaLote" class="control mt-0.5" aria-label="Selecciona el codigo de lote a consultar"></select>
+          </div>
+          <div class="grid h-36 place-items-center overflow-hidden rounded-xl border border-slate-800">
+            <img alt="Aguacates" class="h-full w-full object-cover" src="https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?auto=format&fit=crop&w=900&q=80" />
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <button class="btn btn-primary w-full" id="consultarOrigen"><i data-lucide="search-check" class="w-4 h-4"></i>Consultar origen</button>
+            <button class="btn btn-danger w-full" id="venderLote"><i data-lucide="flame" class="w-3.5 h-3.5"></i>Marcar vendido</button>
+          </div>
+        </div>
+
+        <!-- ADMIN -->
+        <div data-view="admin" class="role-view hidden space-y-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-violet-300">HU-10</p>
+            <h2 class="text-lg font-extrabold">Dashboard General</h2>
+          </div>
+          <button class="btn btn-primary w-full" id="cargarDashboard"><i data-lucide="bar-chart-3" class="w-4 h-4"></i>Cargar métricas, fincas y lotes</button>
+          <div id="dashboardCards" class="grid grid-cols-2 gap-2 text-xs md:grid-cols-3"></div>
+          <section class="space-y-2 rounded-xl border border-slate-700 bg-black/20 p-2.5">
+            <h3 class="text-xs font-bold text-lime-200">Fincas registradas</h3>
+            <div class="table-wrap max-h-40 overflow-y-auto">
+              <table>
+                <thead><tr><th>Finca</th><th>ICA</th><th>GPS</th><th>Productor</th><th>Certificado</th></tr></thead>
+                <tbody id="fincasAdminTable"><tr><td colspan="5" class="text-center text-slate-400">Carga las métricas para ver las fincas.</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+          <div class="table-wrap max-h-48 overflow-y-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Bloque/Lote</th>
+                  <th>Variedad</th>
+                  <th>Peso</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="bloquesTable">
+                <tr>
+                  <td colspan="5" class="text-slate-400 text-center">Carga las métricas para administrar los lotes.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <section class="space-y-2 rounded-xl border border-violet-500/30 bg-violet-500/5 p-3">
+            <h3 class="text-xs font-bold text-violet-200">Detalle completo del lote</h3>
+            <div class="flex gap-2">
+              <select id="loteAdminDetalle" class="control min-w-0 flex-1" aria-label="Seleccionar lote para ver detalle"></select>
+              <button class="btn btn-secondary !px-3" id="verDetalleLote">Ver detalle</button>
+            </div>
+            <div id="detalleLoteAdmin" class="space-y-2 text-[11px] text-slate-300">Selecciona un lote para ver ubicación, inspección, recepción, incidentes e historial.</div>
+          </section>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- API RESPONSE CONTAINER -->
+    <aside class="w-full mt-4">
+      <section class="panel p-3">
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-300">Respuesta API</h2>
+          <span id="statusBadge" class="badge bg-slate-800 text-slate-300" role="status">Listo</span>
+        </div>
+        <pre id="output" role="status" aria-live="polite" class="max-h-48 overflow-auto rounded-lg bg-black/60 p-2.5 text-[10px] font-mono leading-relaxed text-slate-300">Selecciona una accion para probar el flujo.</pre>
+      </section>
+    </aside>
+
+  </main>
+
+  <script>
+    const api = async (url, options = {}) => {
+      const response = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+      const data = await response.json();
+      if (!response.ok) throw data;
+      return data;
+    };
+
+    const show = (data, ok = true) => {
+      document.querySelector("#statusBadge").textContent = ok ? "OK" : "Error";
+      document.querySelector("#statusBadge").className = ok ? "badge bg-lime-500/20 text-lime-200" : "badge bg-rose-500/20 text-rose-200";
+      document.querySelector("#output").textContent = JSON.stringify(data, null, 2);
+    };
+
+    const run = async (action) => {
+      try { show(await action()); } catch (error) { show(error, false); }
+    };
+
+    // En vez de escribir IDs a mano, las fincas y lotes se seleccionan de
+    // listas desplegables que reflejan lo que realmente existe en el backend.
+    let loteActivo = "AVO-2026-01024";
+    let fincasRegistradas = [];
+
+    const renderFincaSelect = (seleccionarId) => {
+      const select = document.querySelector("#loteFincaId");
+      const previa = select.value;
+      select.innerHTML = fincasRegistradas
+        .map((finca) => `<option value="${finca.id}">${finca.id} — ${finca.nombre}</option>`)
+        .join("");
+      const objetivo = seleccionarId || previa;
+      if (fincasRegistradas.some((finca) => finca.id === objetivo)) select.value = objetivo;
+    };
+
+    const refrescarFincas = async () => {
+      fincasRegistradas = await api("/api/v1/fincas");
+      renderFincaSelect();
+      return fincasRegistradas;
+    };
+
+    const renderLoteSelects = (lotes) => {
+      const renderOpciones = (items, vacio) => items.length
+        ? items.map((lote) => `<option value="${lote.id}">${lote.id} — ${lote.estado}</option>`).join("")
+        : `<option value="">${vacio}</option>`;
+      [
+        { selector: "#bodegaLote", items: lotes, vacio: "Sin lotes registrados" },
+        { selector: "#conductorLote", items: lotes.filter((lote) => lote.estado === "En Transito"), vacio: "Sin lotes en tránsito" },
+        { selector: "#consultaLote", items: lotes, vacio: "Sin lotes registrados" },
+        { selector: "#loteHistorialPremium", items: lotes, vacio: "Sin lotes registrados" }
+      ].forEach(({ selector, items, vacio }) => {
+        const select = document.querySelector(selector);
+        const previa = select.value;
+        select.innerHTML = renderOpciones(items, vacio);
+        if (items.some((lote) => lote.id === loteActivo)) select.value = loteActivo;
+        else if (items.some((lote) => lote.id === previa)) select.value = previa;
+      });
+      const calidadSelect = document.querySelector("#calidadLote");
+      const pendientes = lotes.filter((lote) => lote.estado === "Registrado" && !lote.inspeccionCalidad);
+      calidadSelect.innerHTML = pendientes.length
+        ? pendientes.map((lote) => `<option value="${lote.id}">${lote.id} — Pendiente de calidad</option>`).join("")
+        : `<option value="">No hay lotes pendientes</option>`;
+      if (pendientes.some((lote) => lote.id === loteActivo)) calidadSelect.value = loteActivo;
+    };
+
+    // Vuelve a pedir la lista de lotes y refresca las listas de cada módulo.
+    const refrescarLotes = async () => {
+      const lotes = await api("/api/v1/lotes");
+      renderLoteSelects(lotes);
+      return lotes;
+    };
+
+    let accesoPremium = false;
+    const correoPremium = () => document.querySelector("#premiumEmail").value.trim().toLowerCase();
+    const actualizarEstadoPremium = async () => {
+      const email = correoPremium();
+      if (!email) throw new Error("Escribe el correo asociado a la cuenta para consultar el plan.");
+      const estado = await api(`/api/v1/pagos/wompi/estado?email=${encodeURIComponent(email)}`);
+      accesoPremium = estado.premiumPagado;
+      localStorage.setItem("avochain-premium-email", email);
+      const badge = document.querySelector("#planBadge");
+      if (estado.premiumPagado) {
+        badge.textContent = "PREMIUM PAGADO";
+        badge.className = "badge bg-lime-500/20 text-lime-200";
+        document.querySelector("#premiumAccessInfo").textContent = `Premium activo para ${email}.`;
+        document.querySelector("#planActionInfo").textContent = "Administración y reportes globales habilitados.";
+      } else if (estado.modoBeta) {
+        badge.textContent = "BETA GRATUITA";
+        badge.className = "badge bg-sky-500/20 text-sky-200";
+        document.querySelector("#premiumAccessInfo").textContent = `Beta gratuita activa para ${email}.`;
+        document.querySelector("#planActionInfo").textContent = "Usa las funciones operativas gratis; Premium agrega Administración y reportes globales.";
+      } else {
+        badge.textContent = "PLAN GRATUITO";
+        badge.className = "badge bg-slate-800 text-slate-300";
+        document.querySelector("#premiumAccessInfo").textContent = `No hay un pago Premium aprobado para ${email}.`;
+        document.querySelector("#planActionInfo").textContent = "Activa Premium con Wompi o prueba la demostración.";
+      }
+      const configuracion = estado.wompi;
+      badge.dataset.precioCop = configuracion.precioCop || "99000";
+      const demoDisponible = estado.pagoDemoDisponible;
+      const wompiButton = document.querySelector("#pagarPremium");
+      wompiButton.disabled = !configuracion.checkoutDisponible || estado.premiumPagado;
+      wompiButton.title = configuracion.checkoutDisponible ? "Pagar con Wompi" : "Wompi estará disponible cuando se configure el comercio";
+      wompiButton.classList.toggle("opacity-50", wompiButton.disabled);
+      wompiButton.classList.toggle("cursor-not-allowed", wompiButton.disabled);
+      const demoButton = document.querySelector("#pagarPremiumDemo");
+      demoButton.hidden = !demoDisponible;
+      demoButton.disabled = estado.premiumPagado;
+      demoButton.classList.toggle("opacity-50", estado.premiumPagado);
+      demoButton.classList.toggle("cursor-not-allowed", estado.premiumPagado);
+      const adminButton = document.querySelector('[data-role="admin"]');
+      adminButton.disabled = !estado.premiumPagado;
+      adminButton.classList.toggle("opacity-60", !estado.premiumPagado);
+      adminButton.title = estado.premiumPagado ? "Abrir administración" : "Activa Premium para abrir Administración";
+      ["#generarReportePremium", "#exportarHistorialPremium"].forEach((selector) => {
+        const button = document.querySelector(selector);
+        button.disabled = !accesoPremium;
+        button.classList.toggle("opacity-50", !accesoPremium);
+        button.classList.toggle("cursor-not-allowed", !accesoPremium);
+      });
+      return estado;
+    };
+
+    document.querySelector("#premiumEmail").value = localStorage.getItem("avochain-premium-email") || "";
+    document.querySelector("#consultarPlan").onclick = () => run(actualizarEstadoPremium);
+    document.querySelector("#premiumEmail").addEventListener("change", () => {
+      accesoPremium = false;
+      document.querySelector('[data-role="admin"]').disabled = true;
+      document.querySelector("#planBadge").textContent = "Consultando";
+      document.querySelector("#planBadge").className = "badge bg-slate-800 text-slate-300";
+      document.querySelector("#premiumAccessInfo").textContent = "Consultando acceso de la cuenta…";
+      actualizarEstadoPremium().catch((error) => { document.querySelector("#premiumAccessInfo").textContent = error.message; });
+    });
+
+    document.querySelector("#pagarPremium").onclick = () => run(async () => {
+      if (!correoPremium()) throw new Error("Escribe el correo y pulsa Consultar plan antes de pagar.");
+      const checkout = await api("/api/v1/pagos/wompi/checkout", { method: "POST", body: { email: correoPremium() } });
+      window.location.assign(checkout.checkoutUrl);
+      return { mensaje: "Abriendo el checkout seguro de Wompi.", reference: checkout.reference };
+    });
+
+    const pagoDemoModal = document.querySelector("#pagoDemoModal");
+    document.querySelector("#pagarPremiumDemo").onclick = () => {
+      if (!correoPremium()) {
+        show({ error: "Escribe el correo asociado a la cuenta antes de iniciar la demostración." }, false);
+        document.querySelector("#premiumEmail").focus();
+        return;
+      }
+      document.querySelector("#pagoDemoCorreo").textContent = correoPremium();
+      const precioDemo = Number(document.querySelector("#planBadge").dataset.precioCop || 99000);
+      document.querySelector("#pagoDemoValor").textContent = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(precioDemo);
+      pagoDemoModal.showModal();
+    };
+    document.querySelector("#cancelarPagoDemo").onclick = () => pagoDemoModal.close();
+    document.querySelector("#confirmarPagoDemo").onclick = () => run(async () => {
+      const resultado = await api("/api/v1/pagos/demo/confirmar", { method: "POST", body: { email: correoPremium() } });
+      pagoDemoModal.close();
+      await actualizarEstadoPremium();
+      return resultado;
+    });
+
+    document.querySelector("#generarReportePremium").onclick = () => run(async () => {
+      const email = correoPremium();
+      const reporte = await api(`/api/v1/premium/reportes?email=${encodeURIComponent(email)}`);
+      const contenedor = document.querySelector("#reportePremium");
+      contenedor.innerHTML = `
+        <div class="grid grid-cols-2 gap-2 md:grid-cols-3">
+          <div class="rounded-lg bg-slate-800 p-2"><span class="text-slate-400">Fincas</span><strong class="block text-lg">${reporte.totalFincas}</strong></div>
+          <div class="rounded-lg bg-slate-800 p-2"><span class="text-slate-400">Lotes</span><strong class="block text-lg">${reporte.totalLotes}</strong></div>
+          <div class="rounded-lg bg-slate-800 p-2"><span class="text-slate-400">Viajes</span><strong class="block text-lg">${reporte.totalViajes}</strong></div>
+          <div class="rounded-lg bg-slate-800 p-2"><span class="text-slate-400">Transportadores</span><strong class="block text-lg">${reporte.totalTransportadores}</strong></div>
+          <div class="rounded-lg bg-slate-800 p-2"><span class="text-slate-400">Kilos</span><strong class="block text-lg">${reporte.totalKg}</strong></div>
+          <div class="rounded-lg bg-slate-800 p-2"><span class="text-slate-400">Incidentes</span><strong class="block text-lg">${reporte.totalIncidentes}</strong></div>
+        </div>
+        <h4 class="mt-2 font-bold text-lime-200">Producción por finca</h4>
+        ${reporte.porFinca.length ? reporte.porFinca.map((finca) => `<p class="rounded bg-slate-900 px-2 py-1">${escaparHtml(finca.finca)}: ${finca.lotes} lote(s), ${finca.kilos} kg, ${finca.incidentes} incidente(s)</p>`).join("") : '<p class="text-slate-400">Aún no hay fincas con lotes.</p>'}
+        <h4 class="mt-2 font-bold text-lime-200">Lotes por estado</h4>
+        ${reporte.porEstado.map((estado) => `<p class="rounded bg-slate-900 px-2 py-1">${escaparHtml(estado.estado)}: ${estado.cantidad}</p>`).join("") || '<p class="text-slate-400">Aún no hay lotes.</p>'}
+      `;
+      return { mensaje: "Reporte avanzado generado.", generadosEn: reporte.generadosEn };
+    });
+
+    document.querySelector("#exportarHistorialPremium").onclick = () => run(async () => {
+      const email = correoPremium();
+      const idLote = document.querySelector("#loteHistorialPremium").value;
+      if (!idLote) throw new Error("Selecciona un lote para exportar.");
+      const url = `/api/v1/premium/lotes/${encodeURIComponent(idLote)}/historial.csv?email=${encodeURIComponent(email)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw await response.json();
+      const blob = await response.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `historial-${idLote}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      return { mensaje: `Historial CSV descargado para ${idLote}.` };
+    });
+
+    let qrCameraStream = null;
+    let qrScanFrame = null;
+    const detenerEscanerQR = () => {
+      if (qrScanFrame !== null) cancelAnimationFrame(qrScanFrame);
+      qrScanFrame = null;
+      qrCameraStream?.getTracks().forEach((track) => track.stop());
+      qrCameraStream = null;
+      const video = document.querySelector("#qrVideo");
+      video.pause();
+      video.srcObject = null;
+      video.classList.add("hidden");
+      document.querySelector("#qrScanHint").classList.remove("hidden");
+    };
+
+    document.querySelector("#iniciarEscaner").onclick = () => run(async () => {
+      const BarcodeDetectorAPI = window.BarcodeDetector;
+      if (!navigator.mediaDevices?.getUserMedia || !BarcodeDetectorAPI) {
+        throw new Error("Este navegador no permite leer QR con cámara. Selecciona el lote en la lista manualmente.");
+      }
+      detenerEscanerQR();
+      const detector = new BarcodeDetectorAPI({ formats: ["qr_code"] });
+      qrCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      const video = document.querySelector("#qrVideo");
+      video.srcObject = qrCameraStream;
+      video.classList.remove("hidden");
+      document.querySelector("#qrScanHint").classList.add("hidden");
+      document.querySelector("#qrScanStatus").textContent = "Buscando código QR…";
+      await video.play();
+
+      const buscarCodigo = async () => {
+        if (!qrCameraStream) return;
+        try {
+          const codigos = await detector.detect(video);
+          const codigo = codigos[0]?.rawValue?.trim();
+          if (codigo) {
+            const loteEnTransito = Array.from(document.querySelector("#conductorLote").options).some((option) => option.value === codigo);
+            detenerEscanerQR();
+            if (!loteEnTransito) {
+              const mensaje = `El QR ${codigo} no corresponde a un lote en tránsito.`;
+              document.querySelector("#qrScanStatus").textContent = mensaje;
+              show({ error: mensaje }, false);
+              return;
+            }
+            document.querySelector("#conductorLote").value = codigo;
+            document.querySelector("#qrScanStatus").textContent = `QR leído: ${codigo}. Completa los datos y confirma la recepción.`;
+            return { idLote: codigo, qrLeido: true };
+          }
+        } catch (error) {
+          detenerEscanerQR();
+          document.querySelector("#qrScanStatus").textContent = error instanceof Error ? error.message : "No se pudo leer el QR.";
+          show({ error: document.querySelector("#qrScanStatus").textContent }, false);
+          return;
+        }
+        qrScanFrame = requestAnimationFrame(buscarCodigo);
+      };
+      qrScanFrame = requestAnimationFrame(buscarCodigo);
+      return { mensaje: "Cámara activa. Enfoca el QR del lote." };
+    });
+
+    document.querySelectorAll("[data-role]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.dataset.role === "admin" && !accesoPremium) {
+          show({ mensaje: "La sección de Administración está disponible en Premium. Actívalo con Wompi o con la demostración." }, false);
+          return;
+        }
+        document.querySelectorAll("[data-role]").forEach((item) => {
+          item.classList.remove("role-active");
+          item.classList.add("text-slate-400");
+        });
+        document.querySelectorAll(".role-view").forEach((item) => item.classList.add("hidden"));
+        if (button.dataset.role !== "conductor") detenerEscanerQR();
+        button.classList.add("role-active");
+        button.classList.remove("text-slate-400");
+        document.querySelector(`[data-view="${button.dataset.role}"]`).classList.remove("hidden");
+      });
+    });
+
+    document.querySelector("#crearFinca").onclick = () => run(async () => {
+      const data = await api("/api/v1/fincas", {
+        method: "POST",
+        body: {
+          nombre: document.querySelector("#fincaNombre").value,
+          registroICA: document.querySelector("#fincaIca").value,
+          gps: document.querySelector("#fincaGps").value,
+          certificadoPdfUrl: "https://avochain.local/certificados/demo.pdf",
+          certificadoPdfSizeBytes: 800000,
+          wallet: "0x819C...4U21"
+        }
+      });
+      fincasRegistradas.push({ id: data.id, nombre: data.nombre });
+      renderFincaSelect(data.id);
+      return data;
+    });
+
+    document.querySelector("#crearLote").onclick = () => run(async () => {
+      const data = await api("/api/v1/lotes", {
+        method: "POST",
+        body: {
+          fincaId: document.querySelector("#loteFincaId").value,
+          pesoKg: Number(document.querySelector("#lotePeso").value),
+          variedad: document.querySelector("#loteVariedad").value,
+          fechaCosecha: document.querySelector("#loteFecha").value,
+          wallet: "0x819C...4U21",
+          rol: "Productor"
+        }
+      });
+      loteActivo = data.id;
+      await refrescarLotes();
+      document.querySelector("#bodegaLote").value = data.id;
+      return data;
+    });
+
+    const actualizarAlertaCalidad = () => {
+      const humedad = Number(document.querySelector("#calidadHumedad").value);
+      const temperatura = Number(document.querySelector("#calidadTemperatura").value);
+      const dentro = humedad >= 60 && humedad <= 70 && temperatura >= 4 && temperatura <= 8;
+      const alerta = document.querySelector("#calidadAlerta");
+      alerta.textContent = dentro ? "Parámetros dentro del rango de exportación." : "Fuera de norma de exportación: humedad 60–70% y temperatura 4–8°C.";
+      alerta.className = dentro
+        ? "rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-2 text-[11px] text-emerald-200"
+        : "rounded-lg border border-rose-500/40 bg-rose-500/10 p-2 text-[11px] text-rose-200";
+    };
+    ["#calidadHumedad", "#calidadTemperatura"].forEach((selector) => document.querySelector(selector).addEventListener("input", actualizarAlertaCalidad));
+
+    document.querySelector("#aprobarCalidad").onclick = () => run(async () => {
+      const loteId = document.querySelector("#calidadLote").value;
+      if (!loteId) throw new Error("Registra un lote antes de inspeccionar su calidad.");
+      const informeUrl = document.querySelector("#calidadInformeUrl").value.trim();
+      const informeMb = Number(document.querySelector("#calidadInformeMb").value);
+      if (!informeUrl || !Number.isFinite(informeMb) || informeMb <= 0 || informeMb > 2) throw new Error("Ingresa la URL del informe PDF y un peso mayor a 0 y máximo 2MB.");
+      const data = await api(`/api/v1/lotes/${loteId}/inspeccion-calidad`, {
+        method: "POST",
+        body: {
+          rol: "Inspector de calidad", inspectorId: "INSPECTOR-DEMO-001",
+          destino: document.querySelector("#calidadDestino").value,
+          humedad: Number(document.querySelector("#calidadHumedad").value),
+          temperaturaC: Number(document.querySelector("#calidadTemperatura").value),
+          evaluacionFitosanitaria: document.querySelector("#calidadFitosanitaria").value,
+          informePdfMimeType: "application/pdf", informePdfUrl: informeUrl,
+          informePdfSizeBytes: Math.round(informeMb * 1024 * 1024)
+        }
+      });
+      loteActivo = data.id;
+      await refrescarLotes();
+      document.querySelector("#bodegaLote").value = data.id;
+      return data;
+    });
+
+    document.querySelector("#subirFotos").onclick = () => run(() => api(`/api/v1/lotes/${loteActivo}/evidencias`, {
+      method: "POST",
+      body: { fotos: [{ filename: "cosecha.jpg", mimeType: "image/jpeg", sizeBytes: 420000 }] }
+    }));
+
+    document.querySelector("#generarQr").onclick = () => run(async () => {
+      const data = await api(`/api/v1/lotes/${document.querySelector("#bodegaLote").value}/qr`, {
+        method: "POST",
+        body: { autorizarReimpresion: true }
+      });
+
+      const cleanBase64 = data.qrBase64.replace(/[\r\n\s]+/g, "");
+
+      document.querySelector("#qrBox").innerHTML = `
+        <div class="flex items-center justify-center p-1">
+          <img src="${cleanBase64}" alt="QR Lote" style="width: 150px; height: 150px;" class="rounded-lg bg-white p-2 object-contain" />
+        </div>
+      `;
+      return data;
+    });
+
+    document.querySelector("#despachar").onclick = () => run(async () => {
+      const data = await api(`/api/v1/lotes/${document.querySelector("#bodegaLote").value}/despacho`, {
+        method: "POST",
+        body: { conductorId: "COND-001", conductorNombre: "Carlos Mendoza", pinConfirmacion: "1234", rol: "Bodeguero" }
+      });
+      await refrescarLotes();
+      return data;
+    });
+
+    document.querySelector("#recibirTienda").onclick = () => run(async () => {
+      const temperaturaC = Number(document.querySelector("#temperaturaLlegada").value);
+      const cajasDanadas = Number(document.querySelector("#cajasDanadas").value);
+      const tempRutaText = document.querySelector("#temperaturaMaximaRuta").value.trim();
+      const temperaturaMaximaRutaC = tempRutaText ? Number(tempRutaText) : undefined;
+      const data = await api(`/api/v1/lotes/${document.querySelector("#conductorLote").value}/recepcion-destino`, {
+        method: "POST",
+        body: { rol: "Receptor", receptorId: "RECEPTOR-DEMO-001", temperaturaC, cajasDanadas, temperaturaMaximaRutaC }
+      });
+      await refrescarLotes();
+      return data;
+    });
+
+    document.querySelector("#capturarUbicacion").onclick = () => run(() => new Promise((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("Este navegador no ofrece geolocalización. Ingresa latitud y longitud manualmente."));
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          document.querySelector("#incidenteLatitud").value = coords.latitude.toFixed(6);
+          document.querySelector("#incidenteLongitud").value = coords.longitude.toFixed(6);
+          resolve({ latitud: coords.latitude, longitud: coords.longitude, mensaje: "Ubicación GPS capturada." });
+        },
+        (error) => reject(new Error(`No se pudo obtener la ubicación (${error.message}). Ingresa las coordenadas manualmente.`)),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }));
+
+    document.querySelector("#reportarIncidente").onclick = () => run(async () => {
+      const loteId = document.querySelector("#conductorLote").value;
+      const comentario = document.querySelector("#detalleIncidente").value.trim();
+      if (!comentario) throw new Error("Describe brevemente el suceso antes de guardarlo.");
+      const latitudText = document.querySelector("#incidenteLatitud").value.trim();
+      const longitudText = document.querySelector("#incidenteLongitud").value.trim();
+      if (!latitudText || !longitudText) throw new Error("Captura la ubicación GPS o ingresa latitud y longitud.");
+      const data = await api(`/api/v1/lotes/${loteId}/incidentes`, {
+        method: "POST",
+        body: {
+          conductorId: "COND-001", tipo: document.querySelector("#tipoIncidente").value, comentario,
+          ubicacion: {
+            latitud: Number(latitudText), longitud: Number(longitudText),
+            referencia: document.querySelector("#incidenteReferencia").value.trim() || undefined
+          }
+        }
+      });
+      await refrescarLotes();
+      document.querySelector("#detalleIncidente").value = "";
+      document.querySelector("#incidenteReferencia").value = "";
+      return data;
+    });
+
+    document.querySelector("#consultarOrigen").onclick = () => run(() => api(`/api/v1/producto/origen/${document.querySelector("#consultaLote").value}`));
+
+    document.querySelector("#venderLote").onclick = () => run(async () => {
+      const data = await api(`/api/v1/lotes/${document.querySelector("#consultaLote").value}/venta`, {
+        method: "POST",
+        body: { vendedorId: "VEN-001", rol: "Vendedor" }
+      });
+      await refrescarLotes();
+      return data;
+    });
+
+    const cargarBloques = async () => {
+      const lotes = await api("/api/v1/lotes");
+      const detalleSelect = document.querySelector("#loteAdminDetalle");
+      const detallePrevio = detalleSelect.value;
+      detalleSelect.innerHTML = lotes.length
+        ? lotes.map((lote) => `<option value="${lote.id}">${lote.id} — ${lote.estado}</option>`).join("")
+        : `<option value="">No hay lotes registrados</option>`;
+      if (lotes.some((lote) => lote.id === detallePrevio)) detalleSelect.value = detallePrevio;
+      document.querySelector("#bloquesTable").innerHTML = lotes.map((lote) => `
+        <tr>
+          <td class="font-mono text-lime-200">${lote.id}</td>
+          <td><input class="control admin-variedad !p-1 !text-[10px]" data-id="${lote.id}" value="${lote.variedad}" /></td>
+          <td><input class="control admin-peso !p-1 !text-[10px]" data-id="${lote.id}" type="number" value="${lote.pesoKg}" /></td>
+          <td><span class="text-[10px]">${lote.estado}</span></td>
+          <td>
+            <div class="flex gap-1">
+              <button class="btn btn-secondary !p-1 !min-h-0" onclick="verDetalleLote('${lote.id}')" title="Ver detalle"><i data-lucide="eye" class="w-3 h-3"></i></button>
+              <button class="btn btn-secondary !p-1 !min-h-0" onclick="editarBloque('${lote.id}')"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+              <button class="btn btn-danger !p-1 !min-h-0" onclick="eliminarBloque('${lote.id}')"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+            </div>
+          </td>
+        </tr>
+      `).join("") || `<tr><td colspan="5" class="text-slate-400 text-center">No hay bloques registrados.</td></tr>`;
+      lucide.createIcons();
+      renderLoteSelects(lotes);
+      return lotes;
+    };
+
+    const escaparHtml = (valor) => String(valor ?? "—").replace(/[&<>"']/g, (caracter) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+    })[caracter]);
+
+    window.verDetalleLote = (idLote = document.querySelector("#loteAdminDetalle").value) => run(async () => {
+      if (!idLote) throw new Error("No hay lotes para consultar.");
+      const detalle = await api(`/api/v1/admin/lotes/${encodeURIComponent(idLote)}?email=${encodeURIComponent(correoPremium())}`);
+      document.querySelector("#loteAdminDetalle").value = idLote;
+      const ubicacion = detalle.ubicacionActual || {};
+      const ultimaGps = detalle.ultimaUbicacionGPS;
+      const mapaGps = (posicion) => posicion && Number.isFinite(posicion.latitud) && Number.isFinite(posicion.longitud)
+        ? `<a class="text-cyan-300 underline" target="_blank" rel="noopener" href="https://maps.google.com/?q=${posicion.latitud},${posicion.longitud}">${escaparHtml(posicion.latitud)}, ${escaparHtml(posicion.longitud)}</a>`
+        : "Ubicación GPS no disponible";
+      const incidentes = detalle.incidentes?.length
+        ? detalle.incidentes.slice().reverse().map((incidente) => {
+          const coords = incidente.ubicacion
+            ? `${escaparHtml(incidente.ubicacion.latitud)}, ${escaparHtml(incidente.ubicacion.longitud)}${incidente.ubicacion.referencia ? ` · ${escaparHtml(incidente.ubicacion.referencia)}` : ""}`
+            : "Sin GPS adjunto";
+          return `<li class="rounded-lg border border-amber-500/20 bg-black/20 p-2"><strong class="text-amber-200">${escaparHtml(incidente.tipo)}</strong><p>${escaparHtml(incidente.comentario)}</p><p class="text-slate-400">${escaparHtml(new Date(incidente.creadoEn).toLocaleString())} · ${coords}</p></li>`;
+        }).join("")
+        : `<li class="text-slate-400">Sin incidentes reportados.</li>`;
+      const eventos = detalle.eventos?.length
+        ? detalle.eventos.slice().reverse().map((evento) => `<li class="border-l border-slate-700 pl-2"><strong>${escaparHtml(evento.tipo)}</strong> · ${escaparHtml(evento.fecha)}<br>${escaparHtml(evento.detalle)}</li>`).join("")
+        : `<li class="text-slate-400">Sin eventos.</li>`;
+      document.querySelector("#detalleLoteAdmin").innerHTML = `
+        <div class="grid grid-cols-2 gap-2 rounded-lg bg-black/25 p-2">
+          <p><strong>Lote:</strong> ${escaparHtml(detalle.id)}</p><p><strong>Estado:</strong> ${escaparHtml(detalle.estado)}</p>
+          <p><strong>Producto:</strong> ${escaparHtml(detalle.variedad)} · ${escaparHtml(detalle.pesoKg)} kg</p><p><strong>Cosecha:</strong> ${escaparHtml(detalle.fechaCosecha)}</p>
+          <p><strong>Finca:</strong> ${escaparHtml(detalle.finca?.nombre || detalle.fincaId)}</p><p><strong>QR:</strong> ${detalle.qrGenerado ? "Generado" : "No generado"}</p>
+          <p class="col-span-2"><strong>Ubicación según estado:</strong> ${escaparHtml(ubicacion.descripcion || mapaGps(ubicacion))}</p>
+          <p class="col-span-2"><strong>Último GPS reportado:</strong> ${mapaGps(ultimaGps)}${ultimaGps ? ` · ${escaparHtml(ultimaGps.incidente)} · ${escaparHtml(new Date(ultimaGps.reportadaEn).toLocaleString())}` : ""}</p>
+          <p class="col-span-2 text-slate-400">El GPS corresponde al último reporte del conductor; no es seguimiento en tiempo real.</p>
+        </div>
+        <div class="rounded-lg bg-black/20 p-2"><strong class="text-cyan-200">Inspección de calidad</strong><p>${detalle.inspeccionCalidad ? `${detalle.inspeccionCalidad.aprobada ? "Aprobada" : "Rechazada"} · ${escaparHtml(detalle.inspeccionCalidad.destino)} · Humedad ${escaparHtml(detalle.inspeccionCalidad.humedad)}% · Temperatura ${escaparHtml(detalle.inspeccionCalidad.temperaturaC)}°C · ${escaparHtml(detalle.inspeccionCalidad.evaluacionFitosanitaria)} · ${escaparHtml(detalle.inspeccionCalidad.informePdfUrl)}` : "Sin inspección registrada."}</p></div>
+        <div class="rounded-lg bg-black/20 p-2"><strong class="text-sky-200">Despacho</strong><p>${escaparHtml(detalle.conductorId || "Sin conductor asignado")} · ${escaparHtml(detalle.eventos?.filter((evento) => evento.tipo === "Despacho").slice(-1)[0]?.fecha || "Sin fecha")}</p></div>
+        <div class="rounded-lg bg-black/20 p-2"><strong class="text-emerald-200">Recepción en destino</strong><p>${detalle.recepcionDestino ? `${escaparHtml(detalle.recepcionDestino.temperaturaC)}°C · ${escaparHtml(detalle.recepcionDestino.cajasDanadas)} cajas dañadas · ${escaparHtml(detalle.recepcionDestino.recibidoPor)} · ${escaparHtml(new Date(detalle.recepcionDestino.recibidoEn).toLocaleString())}` : "Sin recepción registrada."}</p></div>
+        <div class="rounded-lg bg-black/20 p-2"><strong class="text-lime-200">Evidencias</strong><ul>${detalle.evidencias?.length ? detalle.evidencias.map((evidencia) => `<li><a class="text-cyan-300 underline" href="${escaparHtml(evidencia.url)}" target="_blank" rel="noopener">${escaparHtml(evidencia.filename)}</a></li>`).join("") : "<li>Sin evidencias.</li>"}</ul></div>
+        <div class="rounded-lg bg-black/20 p-2"><strong class="text-lime-200">Blockchain</strong><p>Registro: ${escaparHtml(detalle.txHashRegistro)}</p><p>Venta: ${escaparHtml(detalle.eventos?.filter((evento) => evento.tipo === "Venta").slice(-1)[0]?.txHash || "Sin venta registrada")}</p></div>
+        <div><strong class="text-amber-200">Incidentes (${detalle.incidentes?.length || 0})</strong><ul class="mt-1 space-y-1">${incidentes}</ul></div>
+        <div><strong class="text-violet-200">Historial</strong><ul class="mt-1 max-h-36 space-y-1 overflow-y-auto">${eventos}</ul></div>`;
+      return detalle;
+    });
+
+    document.querySelector("#verDetalleLote").onclick = () => window.verDetalleLote();
+
+    const cargarFincasAdmin = async () => {
+      const fincas = await api("/api/v1/fincas");
+      document.querySelector("#fincasAdminTable").innerHTML = fincas.map((finca) => `
+        <tr><td>${escaparHtml(finca.nombre)}<br><span class="text-slate-500">${escaparHtml(finca.id)}</span></td><td>${escaparHtml(finca.registroICA)}</td><td>${escaparHtml(finca.gps)}</td><td>${escaparHtml(finca.productorWallet)}</td><td>${finca.certificadoPdfUrl ? `<a class="text-cyan-300 underline" href="${escaparHtml(finca.certificadoPdfUrl)}" target="_blank" rel="noopener">Ver PDF</a>` : "—"}</td></tr>
+      `).join("") || `<tr><td colspan="5" class="text-center text-slate-400">No hay fincas registradas.</td></tr>`;
+      return fincas;
+    };
+
+    window.editarBloque = (idLote) => run(async () => {
+      const variedad = document.querySelector(`.admin-variedad[data-id="${idLote}"]`).value;
+      const pesoKg = Number(document.querySelector(`.admin-peso[data-id="${idLote}"]`).value);
+      const data = await api(`/api/v1/lotes/${idLote}`, {
+        method: "PATCH",
+        body: { variedad, pesoKg, rol: "Administrador", email: correoPremium() }
+      });
+      await cargarBloques();
+      return data;
+    });
+
+    window.eliminarBloque = (idLote) => run(async () => {
+      const data = await api(`/api/v1/lotes/${idLote}?rol=Administrador&email=${encodeURIComponent(correoPremium())}`, { method: "DELETE" });
+      await cargarBloques();
+      return data;
+    });
+
+    document.querySelector("#cargarDashboard").onclick = () => run(async () => {
+      const data = await api(`/api/v1/admin/dashboard?email=${encodeURIComponent(correoPremium())}`);
+      const cards = [
+        ["Fincas", data.totalFincas],
+        ["Lotes", data.totales],
+        ["Viajes", data.totalViajes],
+        ["Transportadores", data.totalTransportadores],
+        ["Kilos trazados", data.totalKg],
+        ["Incidentes", data.totalIncidentes],
+        ["Registrados", data.registrados],
+        ["Aprobados calidad", data.aprobadosCalidad],
+        ["Rechazados origen", data.rechazadosOrigen],
+        ["En transito", data.enTransito],
+        ["Punto venta", data.enPuntoDeVenta],
+        ["Vendidos", data.vendidos]
+      ];
+      document.querySelector("#dashboardCards").innerHTML = cards.map(([label, value]) => `
+        <div class="rounded-lg border border-slate-700 bg-black/25 p-2.5">
+          <p class="text-[10px] font-bold uppercase text-slate-400">${label}</p>
+          <p class="mt-0.5 text-lg font-extrabold">${value}</p>
+        </div>
+      `).join("");
+      await cargarFincasAdmin();
+      await cargarBloques();
+      return data;
+    });
+
+    refrescarFincas().catch((error) => show(error, false));
+    refrescarLotes().catch(() => {});
+    if (correoPremium()) actualizarEstadoPremium().catch((error) => { document.querySelector("#premiumAccessInfo").textContent = error.message; });
+    const parametrosPago = new URLSearchParams(window.location.search);
+    if (parametrosPago.has("wompi") && parametrosPago.get("id")) {
+      const transactionId = parametrosPago.get("id");
+      run(async () => {
+        const resultado = await api("/api/v1/pagos/wompi/verificar", { method: "POST", body: { transactionId } });
+        const estado = await actualizarEstadoPremium();
+        window.history.replaceState({}, "", window.location.pathname);
+        return { ...resultado, accesoPremium: estado.activo };
+      });
+    }
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>

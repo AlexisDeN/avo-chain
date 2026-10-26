@@ -1,0 +1,524 @@
+AVOCHAIN — GUÍA DE CONSULTAS PARA MONGOSH
+========================================
+
+Base de datos: avochain
+Colecciones: usuarios, fincas, lotes
+
+CÓMO CONECTAR
+--------------
+Desde PowerShell puedes abrir mongosh así:
+
+mongosh "mongodb://avoadmin:change-this-password@127.0.0.1:27018/avochain?authSource=admin"
+
+Ya dentro de mongosh, selecciona la base:
+
+use avochain
+
+Consejos:
+- Los campos de fecha son BSON Date; consulta con ISODate("AAAA-MM-DDTHH:mm:ssZ").
+- Los identificadores de relaciones son ObjectId. Para buscar uno copiado de Compass usa ObjectId("...").
+- Ejecuta las consultas de una en una. Puedes cambiar los límites y valores para practicar.
+- Estas consultas son de lectura; no modifican ni borran datos.
+- En estadoActual se usan exactamente: "Registrado", "Aprobado_Calidad", "Rechazado_En_Origen", "En Transito", "En Punto de Venta", "Vendido".
+
+1. EXPLORAR LA BASE Y LAS COLECCIONES
+-------------------------------------
+
+// Ver la base activa
+ db.getName()
+
+// Listar colecciones
+ show collections
+
+// Contar documentos de cada colección
+ db.usuarios.countDocuments()
+ db.fincas.countDocuments()
+ db.lotes.countDocuments()
+
+// Ver algunos documentos
+ db.usuarios.find().limit(5).pretty()
+ db.fincas.find().limit(5).pretty()
+ db.lotes.find().limit(3).pretty()
+
+// Ver un documento con ciertos campos
+ db.lotes.findOne({}, { codigoLote: 1, estadoActual: 1, fincaId: 1, datosProduccion: 1 })
+
+2. USUARIOS Y ROLES
+-------------------
+
+// Todos los usuarios activos
+ db.usuarios.find({ estadoActivo: true }).pretty()
+
+// Buscar usuarios por rol
+ db.usuarios.find({ rol: "Transportista" }).pretty()
+ db.usuarios.find({ rol: "Inspector de calidad" }).pretty()
+ db.usuarios.find({ rol: "Productor" }).pretty()
+ db.usuarios.find({ rol: "Receptor" }).pretty()
+ db.usuarios.find({ rol: "Vendedor" }).pretty()
+
+// Mostrar solo nombre, rol y wallet, sin _id
+ db.usuarios.find({}, { _id: 0, nombre: 1, rol: 1, walletAddress: 1 })
+
+// Contar usuarios por rol
+ db.usuarios.aggregate([
+   { $group: { _id: "$rol", cantidad: { $sum: 1 } } },
+   { $sort: { cantidad: -1 } }
+ ])
+
+// Roles con 5 o más usuarios
+ db.usuarios.aggregate([
+   { $group: { _id: "$rol", cantidad: { $sum: 1 } } },
+   { $match: { cantidad: { $gte: 5 } } },
+   { $sort: { cantidad: -1 } }
+ ])
+
+// Usuarios registrados desde el 1 de octubre de 2026
+ db.usuarios.find({ fechaRegistro: { $gte: ISODate("2026-10-01T00:00:00Z") } })
+
+3. FINCAS
+---------
+
+// Fincas activas
+ db.fincas.find({ estado: "Activa" }).pretty()
+
+// Fincas inactivas
+ db.fincas.find({ estado: "Inactiva" }).pretty()
+
+// Buscar finca por nombre
+ db.fincas.find({ nombreFinca: /Palmas/i })
+
+// Buscar por registro ICA
+ db.fincas.findOne({ registroICA: "ICA-2026000-C0001" })
+
+// Mostrar nombre, ICA y ubicación de cada finca
+ db.fincas.find({}, { _id: 0, nombreFinca: 1, registroICA: 1, ubicacionGPS: 1, estado: 1 })
+
+// Cantidad de fincas por estado
+ db.fincas.aggregate([
+   { $group: { _id: "$estado", cantidad: { $sum: 1 } } }
+ ])
+
+// Fincas junto con los datos de su productor
+ db.fincas.aggregate([
+   { $lookup: { from: "usuarios", localField: "productorId", foreignField: "_id", as: "productor" } },
+   { $unwind: { path: "$productor", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, nombreFinca: 1, registroICA: 1, estado: 1, productor: "$productor.nombre", walletProductor: "$productor.walletAddress" } },
+   { $sort: { nombreFinca: 1 } }
+ ])
+
+// Fincas agrupadas por productor
+ db.fincas.aggregate([
+   { $lookup: { from: "usuarios", localField: "productorId", foreignField: "_id", as: "productor" } },
+   { $unwind: { path: "$productor", preserveNullAndEmptyArrays: true } },
+   { $group: { _id: "$productor.nombre", cantidadFincas: { $sum: 1 }, fincas: { $push: "$nombreFinca" } } },
+   { $sort: { cantidadFincas: -1 } }
+ ])
+
+4. LOTES: FILTROS BÁSICOS Y ESTADOS
+-----------------------------------
+
+// Lotes en cada estado
+ db.lotes.find({ estadoActual: "Registrado" })
+ db.lotes.find({ estadoActual: "Aprobado_Calidad" })
+ db.lotes.find({ estadoActual: "Rechazado_En_Origen" })
+ db.lotes.find({ estadoActual: "En Transito" })
+ db.lotes.find({ estadoActual: "En Punto de Venta" })
+ db.lotes.find({ estadoActual: "Vendido" })
+
+// Contar lotes por estado
+ db.lotes.aggregate([
+   { $group: { _id: "$estadoActual", cantidad: { $sum: 1 } } },
+   { $sort: { cantidad: -1 } }
+ ])
+
+// Proyectar campos útiles de los lotes
+ db.lotes.find({}, {
+   _id: 0, codigoLote: 1, estadoActual: 1,
+   "datosProduccion.variedad": 1,
+   "datosProduccion.pesoKg": 1,
+   "datosProduccion.fechaCosecha": 1
+ })
+
+// Lotes Hass de más de 1.000 kg
+ db.lotes.find({ "datosProduccion.variedad": "Hass", "datosProduccion.pesoKg": { $gt: 1000 } })
+
+// Lotes de entre 500 y 1.500 kg, inclusive
+ db.lotes.find({ "datosProduccion.pesoKg": { $gte: 500, $lte: 1500 } })
+
+// Los 10 lotes más pesados
+ db.lotes.find({}, { codigoLote: 1, "datosProduccion.pesoKg": 1, estadoActual: 1 })
+   .sort({ "datosProduccion.pesoKg": -1 }).limit(10)
+
+// Lotes cosechados durante noviembre de 2026
+ db.lotes.find({ "datosProduccion.fechaCosecha": {
+   $gte: ISODate("2026-11-01T00:00:00Z"),
+   $lt: ISODate("2026-12-01T00:00:00Z")
+ } })
+
+// Códigos de lote que empiecen por AVO-2026
+ db.lotes.find({ codigoLote: /^AVO-2026/ }, { codigoLote: 1, estadoActual: 1 })
+
+// Lotes por finca (reemplaza el código por uno existente)
+ db.lotes.find({ "datosAplicacion.fincaId": "FINCA-001" })
+
+5. CALIDAD PRE-DESPACHO
+-----------------------
+
+// Lotes con inspección aprobada
+ db.lotes.find({ "inspeccionCalidad.aprobado": true })
+
+// Lotes rechazados en origen
+ db.lotes.find({ estadoActual: "Rechazado_En_Origen", "inspeccionCalidad.aprobado": false })
+
+// Aprobados con humedad dentro del intervalo 60–70%
+ db.lotes.find({
+   "inspeccionCalidad.aprobado": true,
+   "inspeccionCalidad.humedad": { $gte: 60, $lte: 70 }
+ })
+
+// Inspecciones con temperatura fuera del intervalo 4–8°C
+ db.lotes.find({ "inspeccionCalidad.temperatura": { $not: { $gte: 4, $lte: 8 } } })
+
+// Inspecciones con humedad fuera del intervalo 60–70%
+ db.lotes.find({ "inspeccionCalidad.humedad": { $not: { $gte: 60, $lte: 70 } } })
+
+// Agrupar por aprobación y destino
+ db.lotes.aggregate([
+   { $match: { inspeccionCalidad: { $exists: true } } },
+   { $group: { _id: { aprobado: "$inspeccionCalidad.aprobado", destino: "$inspeccionCalidad.destino" }, cantidad: { $sum: 1 } } },
+   { $sort: { "_id.destino": 1 } }
+ ])
+
+// Promedio, mínimo y máximo de humedad por destino
+ db.lotes.aggregate([
+   { $match: { inspeccionCalidad: { $exists: true } } },
+   { $group: { _id: "$inspeccionCalidad.destino", promedioHumedad: { $avg: "$inspeccionCalidad.humedad" }, minHumedad: { $min: "$inspeccionCalidad.humedad" }, maxHumedad: { $max: "$inspeccionCalidad.humedad" } } }
+ ])
+
+// Inspecciones junto con el nombre del inspector
+ db.lotes.aggregate([
+   { $match: { inspeccionCalidad: { $exists: true } } },
+   { $lookup: { from: "usuarios", localField: "inspeccionCalidad.inspectorId", foreignField: "_id", as: "inspector" } },
+   { $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, codigoLote: 1, estadoActual: 1, humedad: "$inspeccionCalidad.humedad", temperatura: "$inspeccionCalidad.temperatura", aprobado: "$inspeccionCalidad.aprobado", inspector: "$inspector.nombre" } }
+ ])
+
+6. DESPACHOS, TRANSPORTE E INCIDENTES
+-------------------------------------
+
+// Lotes que tienen despacho
+ db.lotes.find({ despacho: { $exists: true } }, { codigoLote: 1, estadoActual: 1, despacho: 1 })
+
+// Lotes con conductor y nombre del transportista
+ db.lotes.aggregate([
+   { $match: { despacho: { $exists: true } } },
+   { $lookup: { from: "usuarios", localField: "despacho.transportistaId", foreignField: "_id", as: "conductor" } },
+   { $unwind: { path: "$conductor", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, codigoLote: 1, estadoActual: 1, transportista: "$conductor.nombre", fechaSalida: "$despacho.fechaSalida" } }
+ ])
+
+// Lotes que reportaron al menos un incidente
+ db.lotes.find({ "incidentesRuta.0": { $exists: true } }, { codigoLote: 1, estadoActual: 1, incidentesRuta: 1 })
+
+// Incidentes separados: una fila de resultado por incidente
+ db.lotes.aggregate([
+   { $unwind: "$incidentesRuta" },
+   { $project: { _id: 0, codigoLote: 1, estadoActual: 1, tipo: "$incidentesRuta.tipoIncidente", descripcion: "$incidentesRuta.descripcion", ubicacion: "$incidentesRuta.ubicacion", fecha: "$incidentesRuta.fechaReporte" } },
+   { $sort: { fecha: -1 } }
+ ])
+
+// Contar incidentes por tipo
+ db.lotes.aggregate([
+   { $unwind: "$incidentesRuta" },
+   { $group: { _id: "$incidentesRuta.tipoIncidente", cantidad: { $sum: 1 } } },
+   { $sort: { cantidad: -1 } }
+ ])
+
+// Incidentes con coordenadas GPS registradas
+ db.lotes.find({ "incidentesRuta.ubicacion.latitud": { $exists: true }, "incidentesRuta.ubicacion.longitud": { $exists: true } }, { codigoLote: 1, incidentesRuta: 1 })
+
+// Incidentes del transportista y lote elegido: reemplaza el código
+ db.lotes.find({ codigoLote: "AVO-2026-01025" }, { codigoLote: 1, incidentesRuta: 1 })
+
+7. RECEPCIÓN Y VENTAS
+---------------------
+
+// Lotes recibidos en punto de venta
+ db.lotes.find({ recepcionDestino: { $exists: true } }, { codigoLote: 1, estadoActual: 1, recepcionDestino: 1 })
+
+// Recepciones con cajas dañadas
+ db.lotes.find({ "recepcionDestino.cajasDanadas": { $gt: 0 } }, { codigoLote: 1, "recepcionDestino.cajasDanadas": 1, "recepcionDestino.temperaturaLlegada": 1 })
+
+// Recepciones cuya temperatura máxima de ruta superó los 12°C
+ db.lotes.find({ "recepcionDestino.temperaturaMaximaRuta": { $gt: 12 } }, { codigoLote: 1, recepcionDestino: 1 })
+
+// Lotes recibidos con temperatura de llegada aceptable (4–10°C)
+ db.lotes.find({ "recepcionDestino.temperaturaLlegada": { $gte: 4, $lte: 10 } })
+
+// Lotes vendidos y fecha de venta
+ db.lotes.find({ ventaFinal: { $exists: true } }, { codigoLote: 1, estadoActual: 1, ventaFinal: 1 })
+
+// Ventas agrupadas por día
+ db.lotes.aggregate([
+   { $match: { "ventaFinal.fechaVenta": { $exists: true } } },
+   { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$ventaFinal.fechaVenta" } }, cantidadVendida: { $sum: 1 } } },
+   { $sort: { _id: 1 } }
+ ])
+
+// Ventas junto con nombre del vendedor
+ db.lotes.aggregate([
+   { $match: { ventaFinal: { $exists: true } } },
+   { $lookup: { from: "usuarios", localField: "ventaFinal.vendedorId", foreignField: "_id", as: "vendedor" } },
+   { $unwind: { path: "$vendedor", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, codigoLote: 1, fechaVenta: "$ventaFinal.fechaVenta", vendedor: "$vendedor.nombre", wallet: "$vendedor.walletAddress" } }
+ ])
+
+8. CONSULTAS COMBINADAS Y RESÚMENES
+-----------------------------------
+
+// Resumen de lotes por finca: cantidad y peso total
+ db.lotes.aggregate([
+   { $group: { _id: "$fincaId", cantidadLotes: { $sum: 1 }, pesoTotalKg: { $sum: "$datosProduccion.pesoKg" } } },
+   { $lookup: { from: "fincas", localField: "_id", foreignField: "_id", as: "finca" } },
+   { $unwind: { path: "$finca", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, finca: "$finca.nombreFinca", cantidadLotes: 1, pesoTotalKg: 1 } },
+   { $sort: { pesoTotalKg: -1 } }
+ ])
+
+// Resumen de lotes por estado: cantidad y peso total
+ db.lotes.aggregate([
+   { $group: { _id: "$estadoActual", cantidad: { $sum: 1 }, pesoTotalKg: { $sum: "$datosProduccion.pesoKg" }, pesoPromedioKg: { $avg: "$datosProduccion.pesoKg" } } },
+   { $sort: { cantidad: -1 } }
+ ])
+
+// Lote completo con su finca de origen
+ db.lotes.aggregate([
+   { $match: { codigoLote: "AVO-2026-01025" } },
+   { $lookup: { from: "fincas", localField: "fincaId", foreignField: "_id", as: "finca" } },
+   { $unwind: { path: "$finca", preserveNullAndEmptyArrays: true } },
+   { $project: { codigoLote: 1, estadoActual: 1, datosProduccion: 1, inspeccionCalidad: 1, despacho: 1, incidentesRuta: 1, recepcionDestino: 1, ventaFinal: 1, nombreFinca: "$finca.nombreFinca", registroICA: "$finca.registroICA" } }
+ ])
+
+// Lotes por finca con estado y variedad
+ db.lotes.aggregate([
+   { $lookup: { from: "fincas", localField: "fincaId", foreignField: "_id", as: "finca" } },
+   { $unwind: "$finca" },
+   { $project: { _id: 0, codigoLote: 1, finca: "$finca.nombreFinca", variedad: "$datosProduccion.variedad", pesoKg: "$datosProduccion.pesoKg", estado: "$estadoActual" } },
+   { $sort: { finca: 1, codigoLote: 1 } }
+ ])
+
+// Ver historial de eventos de un lote
+ db.lotes.findOne({ codigoLote: "AVO-2026-01025" }, { codigoLote: 1, eventos: 1 })
+
+// Lotes que tienen evidencia fotográfica
+ db.lotes.find({ "datosProduccion.evidenciaFotografica.0": { $exists: true } }, { codigoLote: 1, "datosProduccion.evidenciaFotografica": 1 })
+
+// Documentos con QR generado
+ db.lotes.find({ qrGenerado: true }, { codigoLote: 1, estadoActual: 1, qrGenerado: 1, qrImpreso: 1 })
+
+9. EJERCICIOS PARA PRACTICAR
+----------------------------
+
+Intenta escribir la consulta antes de mirar las secciones anteriores:
+1. ¿Cuántos lotes están en tránsito?
+2. ¿Qué lotes rechazados tienen humedad superior al 70%?
+3. ¿Cuáles son las tres fincas con más lotes?
+4. ¿Qué incidentes fueron reportados por tipo y fecha?
+5. ¿Qué transportista tiene asignados más lotes?
+6. ¿Cuántas cajas dañadas se reportaron en total?
+7. ¿Qué lotes vendidos pertenecen a una finca específica?
+8. ¿Cuál es el peso promedio de los lotes por variedad?
+9. ¿Qué inspecciones hizo cada inspector?
+10. ¿Qué lotes tienen temperatura máxima de ruta mayor a 12°C?
+11. ¿Cuántos usuarios activos hay por rol?
+12. ¿Qué fincas no tienen lotes asociados?
+
+10. AYUDA RÁPIDA DE MONGOSH
+---------------------------
+
+// Ver ayuda de find
+ db.lotes.find().help()
+
+// Limitar, ordenar y saltar resultados
+ db.lotes.find().sort({ codigoLote: 1 }).limit(10)
+ db.lotes.find().sort({ codigoLote: 1 }).skip(10).limit(10)
+
+// Operadores útiles:
+// $gt mayor que       $gte mayor o igual
+// $lt menor que       $lte menor o igual
+// $ne diferente       $in pertenece a una lista
+// $exists existe      $and / $or combinar filtros
+// $match filtra en agregación
+// $group agrupa       $lookup relaciona colecciones
+// $project elige campos $sort ordena $limit limita resultados
+
+11. NIVEL MEDIO: AGREGACIONES DE VARIOS PASOS
+--------------------------------------------
+
+// Top 5 fincas por número de lotes y peso total producido
+ db.lotes.aggregate([
+   { $group: { _id: "$fincaId", cantidadLotes: { $sum: 1 }, pesoTotalKg: { $sum: "$datosProduccion.pesoKg" } } },
+   { $lookup: { from: "fincas", localField: "_id", foreignField: "_id", as: "finca" } },
+   { $unwind: "$finca" },
+   { $project: { _id: 0, finca: "$finca.nombreFinca", cantidadLotes: 1, pesoTotalKg: 1 } },
+   { $sort: { cantidadLotes: -1, pesoTotalKg: -1 } },
+   { $limit: 5 }
+ ])
+
+// Promedio y cantidad de lotes por variedad y estado
+ db.lotes.aggregate([
+   { $group: { _id: { variedad: "$datosProduccion.variedad", estado: "$estadoActual" }, lotes: { $sum: 1 }, pesoPromedioKg: { $avg: "$datosProduccion.pesoKg" }, pesoTotalKg: { $sum: "$datosProduccion.pesoKg" } } },
+   { $sort: { "_id.variedad": 1, "_id.estado": 1 } }
+ ])
+
+// Inspecciones agrupadas por inspector con nombre, cantidad aprobada/rechazada y humedad promedio
+ db.lotes.aggregate([
+   { $match: { inspeccionCalidad: { $exists: true } } },
+   { $group: { _id: "$inspeccionCalidad.inspectorId", inspecciones: { $sum: 1 }, aprobadas: { $sum: { $cond: ["$inspeccionCalidad.aprobado", 1, 0] } }, rechazadas: { $sum: { $cond: ["$inspeccionCalidad.aprobado", 0, 1] } }, humedadPromedio: { $avg: "$inspeccionCalidad.humedad" }, temperaturaPromedio: { $avg: "$inspeccionCalidad.temperatura" } } },
+   { $lookup: { from: "usuarios", localField: "_id", foreignField: "_id", as: "inspector" } },
+   { $unwind: { path: "$inspector", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, inspector: "$inspector.nombre", inspecciones: 1, aprobadas: 1, rechazadas: 1, humedadPromedio: { $round: ["$humedadPromedio", 2] }, temperaturaPromedio: { $round: ["$temperaturaPromedio", 2] } } },
+   { $sort: { inspecciones: -1 } }
+ ])
+
+// Conteo de incidentes por transportista, incluyendo su nombre
+ db.lotes.aggregate([
+   { $unwind: "$incidentesRuta" },
+   { $group: { _id: "$incidentesRuta.transportistaId", cantidadIncidentes: { $sum: 1 }, tipos: { $addToSet: "$incidentesRuta.tipoIncidente" }, lotesAfectados: { $addToSet: "$codigoLote" } } },
+   { $lookup: { from: "usuarios", localField: "_id", foreignField: "_id", as: "transportista" } },
+   { $unwind: { path: "$transportista", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, transportista: "$transportista.nombre", cantidadIncidentes: 1, tipos: 1, cantidadLotesAfectados: { $size: "$lotesAfectados" } } },
+   { $sort: { cantidadIncidentes: -1 } }
+ ])
+
+// Sumar cajas dañadas y promediar temperatura de llegada por receptor
+ db.lotes.aggregate([
+   { $match: { recepcionDestino: { $exists: true } } },
+   { $group: { _id: "$recepcionDestino.receptorId", entregas: { $sum: 1 }, cajasDanadas: { $sum: "$recepcionDestino.cajasDanadas" }, temperaturaPromedio: { $avg: "$recepcionDestino.temperaturaLlegada" } } },
+   { $lookup: { from: "usuarios", localField: "_id", foreignField: "_id", as: "receptor" } },
+   { $unwind: { path: "$receptor", preserveNullAndEmptyArrays: true } },
+   { $project: { _id: 0, receptor: "$receptor.nombre", entregas: 1, cajasDanadas: 1, temperaturaPromedio: { $round: ["$temperaturaPromedio", 2] } } },
+   { $sort: { cajasDanadas: -1 } }
+ ])
+
+12. NIVEL MEDIO/ALTO: LÓGICA Y ALERTAS
+--------------------------------------
+
+// Evaluar cumplimiento de humedad y temperatura y etiquetar cada inspección
+ db.lotes.aggregate([
+   { $match: { inspeccionCalidad: { $exists: true } } },
+   { $project: {
+       _id: 0,
+       codigoLote: 1,
+       aprobadoEnSistema: "$inspeccionCalidad.aprobado",
+       humedad: "$inspeccionCalidad.humedad",
+       temperatura: "$inspeccionCalidad.temperatura",
+       resultadoCalculado: { $cond: [
+         { $and: [ { $gte: ["$inspeccionCalidad.humedad", 60] }, { $lte: ["$inspeccionCalidad.humedad", 70] }, { $gte: ["$inspeccionCalidad.temperatura", 4] }, { $lte: ["$inspeccionCalidad.temperatura", 8] } ] },
+         "Dentro de norma", "Fuera de norma"
+       ] }
+   } },
+   { $match: { resultadoCalculado: "Fuera de norma" } }
+ ])
+
+// Buscar registros sospechosos: lote marcado aprobado pero con una medición fuera de rango
+ db.lotes.find({
+   "inspeccionCalidad.aprobado": true,
+   $or: [
+     { "inspeccionCalidad.humedad": { $lt: 60 } },
+     { "inspeccionCalidad.humedad": { $gt: 70 } },
+     { "inspeccionCalidad.temperatura": { $lt: 4 } },
+     { "inspeccionCalidad.temperatura": { $gt: 8 } }
+   ]
+}, { codigoLote: 1, estadoActual: 1, inspeccionCalidad: 1 })
+
+// Detectar lotes rechazados que tengan QR o despacho (posible inconsistencia)
+ db.lotes.find({
+   estadoActual: "Rechazado_En_Origen",
+   $or: [ { qrGenerado: true }, { despacho: { $exists: true } } ]
+}, { codigoLote: 1, estadoActual: 1, qrGenerado: 1, despacho: 1 })
+
+// Detectar lotes sin inspección que ya pasaron a etapas posteriores
+ db.lotes.find({
+   inspeccionCalidad: { $exists: false },
+   estadoActual: { $in: ["Aprobado_Calidad", "En Transito", "En Punto de Venta", "Vendido"] }
+}, { codigoLote: 1, estadoActual: 1 })
+
+// Detectar referencias a fincas que no existen (lookup y arreglo vacío)
+ db.lotes.aggregate([
+   { $lookup: { from: "fincas", localField: "fincaId", foreignField: "_id", as: "fincaEncontrada" } },
+   { $match: { fincaEncontrada: { $size: 0 } } },
+   { $project: { _id: 0, codigoLote: 1, fincaId: 1, estadoActual: 1 } }
+ ])
+
+// Fincas sin lotes vinculados
+ db.fincas.aggregate([
+   { $lookup: { from: "lotes", localField: "_id", foreignField: "fincaId", as: "lotes" } },
+   { $match: { lotes: { $size: 0 } } },
+   { $project: { _id: 0, nombreFinca: 1, registroICA: 1, estado: 1 } }
+ ])
+
+13. NIVEL ALTO: FACET, EVENTOS Y RANKING
+----------------------------------------
+
+// Dashboard en una sola consulta con varias métricas independientes ($facet)
+ db.lotes.aggregate([
+   { $facet: {
+       porEstado: [ { $group: { _id: "$estadoActual", cantidad: { $sum: 1 } } }, { $sort: { cantidad: -1 } } ],
+       porVariedad: [ { $group: { _id: "$datosProduccion.variedad", cantidad: { $sum: 1 }, pesoTotalKg: { $sum: "$datosProduccion.pesoKg" } } }, { $sort: { pesoTotalKg: -1 } } ],
+       calidad: [ { $match: { inspeccionCalidad: { $exists: true } } }, { $group: { _id: "$inspeccionCalidad.aprobado", cantidad: { $sum: 1 } } } ],
+       recibidos: [ { $match: { recepcionDestino: { $exists: true } } }, { $group: { _id: null, totalCajasDanadas: { $sum: "$recepcionDestino.cajasDanadas" }, temperaturaPromedio: { $avg: "$recepcionDestino.temperaturaLlegada" } } } ]
+   } }
+ ])
+
+// Historial de eventos: cantidad de eventos por tipo y actor
+ db.lotes.aggregate([
+   { $unwind: "$eventos" },
+   { $group: { _id: { tipo: "$eventos.tipo", actor: "$eventos.actor" }, cantidad: { $sum: 1 }, lotes: { $addToSet: "$codigoLote" } } },
+   { $project: { tipoEvento: "$_id.tipo", actor: "$_id.actor", cantidad: 1, lotesDistintos: { $size: "$lotes" }, _id: 0 } },
+   { $sort: { cantidad: -1 } }
+ ])
+
+// Línea de tiempo de eventos por día
+ db.lotes.aggregate([
+   { $unwind: "$eventos" },
+   { $group: { _id: { dia: { $dateToString: { format: "%Y-%m-%d", date: { $toDate: "$eventos.fecha" } } }, tipo: "$eventos.tipo" }, cantidad: { $sum: 1 } } },
+   { $sort: { "_id.dia": 1, "_id.tipo": 1 } }
+ ])
+
+// Ranking de fincas en base al peso total, con posición (MongoDB 5+)
+ db.lotes.aggregate([
+   { $group: { _id: "$fincaId", pesoTotalKg: { $sum: "$datosProduccion.pesoKg" }, cantidadLotes: { $sum: 1 } } },
+   { $setWindowFields: { sortBy: { pesoTotalKg: -1 }, output: { posicion: { $rank: {} } } } },
+   { $lookup: { from: "fincas", localField: "_id", foreignField: "_id", as: "finca" } },
+   { $unwind: "$finca" },
+   { $project: { _id: 0, posicion: 1, finca: "$finca.nombreFinca", pesoTotalKg: 1, cantidadLotes: 1 } },
+   { $sort: { posicion: 1 } }
+ ])
+
+// Recepciones agrupadas por mes y temperatura promedio
+ db.lotes.aggregate([
+   { $match: { "recepcionDestino.fechaLlegada": { $exists: true } } },
+   { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$recepcionDestino.fechaLlegada" } }, recepciones: { $sum: 1 }, promedioTemperatura: { $avg: "$recepcionDestino.temperaturaLlegada" }, cajasDanadas: { $sum: "$recepcionDestino.cajasDanadas" } } },
+   { $sort: { _id: 1 } }
+ ])
+
+// Para revisar el plan de ejecución de una consulta (uso de índices)
+ db.lotes.find({ codigoLote: "AVO-2026-01025" }).explain("executionStats")
+
+14. RETOS ADICIONALES PARA LA CLASE
+-----------------------------------
+
+1. Calcular qué porcentaje de inspecciones fue aprobado por cada destino.
+2. Mostrar el top 3 de transportistas por cantidad de lotes despachados y reportar también sus incidentes.
+3. Encontrar lotes cuya recepción ocurrió antes de su fecha de despacho.
+4. Mostrar por finca el porcentaje de lotes vendidos respecto al total cosechado.
+5. Calcular el tiempo promedio entre despacho y recepción.
+6. Listar los inspectores que tienen al menos un lote aprobado fuera de los parámetros físicos.
+7. Construir un resumen por finca con total de lotes, peso, rechazados, en tránsito y vendidos.
+8. Encontrar días con más incidentes y mostrar los tipos de suceso reportados.
+9. Comparar temperatura de llegada con temperatura máxima de ruta y listar mayores diferencias.
+10. Identificar usuarios activos sin participación en lotes, fincas, inspecciones, despachos, recepciones o ventas.
+FIN DE LA GUÍA
+
+
