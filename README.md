@@ -32,13 +32,6 @@ HU-11 aplica una estrategia de evaluación según destino. HU-12 encadena valida
 
 MongoDB: `docker compose up -d mongo` levanta la base en `127.0.0.1:27018`. Copia `.env.example` a `.env` si necesitas cambiar la conexión del backend; al iniciar, el servidor espera a que MongoDB conecte y persiste fincas y lotes en `usuarios`, `fincas` y `lotes`, con documentos en la estructura de dominio y referencias BSON `ObjectId`. La base inicia vacía y no se insertan registros de demostración automáticamente. Configura `MONGO_ROOT_USERNAME` y `MONGO_ROOT_PASSWORD` antes de recrear el contenedor si vas a cambiar las credenciales. El anclaje blockchain continúa simulado; los hashes guardados en Mongo son los retornados por ese adaptador simulado. Las URLs de informes PDF se reciben como referencia; la carga real a S3 y la autenticación JWT requieren sus adaptadores/servicios.
 
-Endpoints nuevos:
-
-- `GET /api/v1/fincas` — devuelve las fincas persistidas para cargar el selector al abrir la interfaz.
-- `GET /api/v1/admin/lotes/:idLote` — devuelve el detalle administrativo del lote, incluso si está vendido.
-- `POST /api/v1/lotes/:idLote/inspeccion-calidad` — `{ rol, inspectorId, destino, humedad, temperaturaC, evaluacionFitosanitaria, informePdfMimeType: "application/pdf", informePdfUrl, informePdfSizeBytes }`.
-- `POST /api/v1/lotes/:idLote/recepcion-destino` — `{ rol, receptorId, temperaturaC, cajasDanadas, temperaturaMaximaRutaC? }`.
-
 Requisitos Previos
 Node.js (version 18 o superior)
 
