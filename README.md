@@ -88,21 +88,5 @@ Si pruebas desde un túnel o dominio público, configura `APP_BASE_URL` con esa 
 
 La aplicación crea la referencia y la firma de integridad en el backend, abre el checkout de Wompi y solo activa Premium cuando verifica una transacción aprobada con el mismo valor, moneda y referencia. El regreso del checkout se verifica desde el servidor consultando la API de Wompi; el webhook `POST /api/v1/pagos/wompi/webhook` también valida el checksum de eventos. Para que Wompi pueda enviar webhooks durante desarrollo local, configura una URL HTTPS pública temporal (por ejemplo, un túnel) que apunte a ese endpoint; en producción usa el dominio HTTPS de la aplicación.
 
-**Alcance de esta entrega:** el prototipo vincula el pago a un correo escrito por el usuario porque el proyecto todavía no tiene registro, inicio de sesión ni autenticación de cuentas. Antes de cobrar a usuarios reales hay que agregar autenticación y asociar el correo verificado al usuario autenticado. La selección visual de roles existente también sigue siendo demostrativa; esta entrega centraliza los nombres/roles, no convierte esa selección en autenticación.
-### Diagramas para la entrega
+**Alcance de esta entrega:** el prototipo vincula el pago a un correo escrito por el usuario porque el proyecto todavía no tiene registro, inicio de sesión ni autenticación de cuentas. Antes de cobrar a usuarios reales, hay que agregar autenticación y asociar el correo verificado al usuario autenticado. La selección visual de roles existente también sigue siendo demostrativa; esta entrega centraliza los nombres/roles, no convierte esa selección en autenticación.
 
-Los diagramas de clases, paquetes, datos y casos de uso están en [`docs/diagramas.md`](docs/diagramas.md), con cada fuente Mermaid disponible por separado en `docs/diagramas/`.
-
-### Estructura del proyecto
-
-```text
-public/                         # Aplicación web HTML/CSS/JavaScript
-src/
-├── application/                # Servicios de negocio y DTOs
-├── domain/                     # Entidades, roles, estados y reglas
-├── infrastructure/             # MongoDB, Wompi, blockchain simulado, almacenamiento
-└── presentation/               # Controladores REST
-mongo/                          # Inicialización y consultas de MongoDB
-docs/diagramas.md               # Diagramas para la entrega académica
-docker-compose.yml              # MongoDB local
-```
